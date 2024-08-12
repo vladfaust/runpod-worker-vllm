@@ -3,7 +3,7 @@ import json
 import logging
 import glob
 from shutil import rmtree
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, hf_hub_download
 from utils import timer_decorator
 
 BASE_DIR = "/" 
@@ -42,6 +42,9 @@ def download(name, revision, type, cache_dir):
     except ValueError:
         raise ValueError(f"No patterns matching {pattern_sets} found for download.")
         
+@timer_decorator
+def download_gguf(repo_id, filename, revision, cache_dir):
+    return hf_hub_download(repo_id=repo_id, filename=filename, revision=revision, cache_dir=cache_dir)
           
 # @timer_decorator
 # def tensorize_model(model_path): TODO: Add back once tensorizer is ready
@@ -70,16 +73,29 @@ def download(name, revision, type, cache_dir):
 if __name__ == "__main__":
     setup_env()
     cache_dir = os.getenv("HF_HOME")
-    model_name, model_revision = os.getenv("MODEL_NAME"), os.getenv("MODEL_REVISION") or None
+    model_name, model_revision, model_filename = os.getenv("MODEL_NAME"), os.getenv("MODEL_REVISION"), os.getenv("MODEL_FILENAME")  or None
     tokenizer_name, tokenizer_revision = os.getenv("TOKENIZER_NAME") or model_name, os.getenv("TOKENIZER_REVISION") or model_revision
    
-    model_path = download(model_name, model_revision, "model", cache_dir)   
-  
-    metadata = {
-        "MODEL_NAME": model_path,
-        "MODEL_REVISION": os.getenv("MODEL_REVISION"),
-        "QUANTIZATION": os.getenv("QUANTIZATION"),
-    }   
+    if os.getenv("QUANTIZATION") == "gguf":
+        if model_filename is None:
+            raise ValueError("MODEL_FILENAME must be provided for gguf quantization.")
+
+        model_path = download_gguf(model_name, model_filename, model_revision, cache_dir)
+        metadata = {
+            "MODEL_NAME": model_path,
+            "MODEL_REVISION": os.getenv("MODEL_REVISION"),
+            "QUANTIZATION": os.getenv("QUANTIZATION"),
+        }
+    else:
+        model_path = download(model_name, model_revision, "model", cache_dir)
+        tokenizer_path = download(tokenizer_name, tokenizer_revision, "tokenizer", cache_dir)
+        metadata = {
+            "MODEL_NAME": model_path,
+            "MODEL_REVISION": os.getenv("MODEL_REVISION"),
+            "QUANTIZATION": os.getenv("QUANTIZATION"),
+            "TOKENIZER_NAME": tokenizer_path,
+            "TOKENIZER_REVISION": tokenizer_revision
+        }
     
     # if os.getenv("TENSORIZE") == "1": TODO: Add back once tensorizer is ready
     #     serialized_uri, tensorizer_num_gpus, dtype = tensorize_model(model_path)
@@ -90,11 +106,5 @@ if __name__ == "__main__":
     #         "DTYPE": dtype
     #     })
         
-    tokenizer_path = download(tokenizer_name, tokenizer_revision, "tokenizer", cache_dir)
-    metadata.update({
-        "TOKENIZER_NAME": tokenizer_path,
-        "TOKENIZER_REVISION": tokenizer_revision
-    })
-    
     with open(f"{BASE_DIR}/local_model_args.json", "w") as f:
         json.dump({k: v for k, v in metadata.items() if v not in (None, "")}, f)
