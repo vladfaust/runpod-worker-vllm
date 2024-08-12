@@ -44,7 +44,7 @@ class vLLMEngine:
                 apply_chat_template=job_input.apply_chat_template,
                 request_id=job_input.request_id,
                 batch_size_growth_factor=job_input.batch_size_growth_factor,
-                min_batch_size=job_input.min_batch_size
+                min_batch_size=job_input.min_batch_size,
                 guided_options_request=job_input.guided_options_request
             ):
                 yield batch
