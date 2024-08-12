@@ -47,6 +47,7 @@ class JobInput:
         self.min_batch_size = int(min_batch_size) if min_batch_size else None 
         self.openai_route = job.get("openai_route")
         self.openai_input = job.get("openai_input")
+        self.guided_options_request=job.get("guided_options_request", None)
 
 class DummyRequest:
     async def is_disconnected(self):
