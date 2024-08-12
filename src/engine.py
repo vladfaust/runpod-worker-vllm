@@ -11,6 +11,7 @@ from vllm import AsyncLLMEngine
 from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
 from vllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
 from vllm.entrypoints.openai.protocol import ChatCompletionRequest, CompletionRequest, ErrorResponse
+from vllm.model_executor.guided_decoding.outlines_logits_processors import RegexLogitsProcessor, CFGLogitsProcessor
 
 from utils import DummyRequest, JobInput, BatchSize, create_error_response
 from constants import DEFAULT_MAX_CONCURRENCY, DEFAULT_BATCH_SIZE, DEFAULT_BATCH_SIZE_GROWTH_FACTOR, DEFAULT_MIN_BATCH_SIZE
@@ -36,25 +37,38 @@ class vLLMEngine:
                            
     async def generate(self, job_input: JobInput):
         try:
+            sampling_params = job_input.sampling_params
+            if job_input.guided_options_request:
+                sampling_params.logits_processors = []
+
+                guided_regex = job_input.guided_options_request.get("guided_regex")
+                if guided_regex is not None:
+                    sampling_params.logits_processors.append(
+                        RegexLogitsProcessor(guided_regex, self.tokenizer))
+
+                guided_grammar = job_input.guided_options_request.get("guided_grammar")
+                if guided_grammar is not None:
+                    sampling_params.logits_processors.append(
+                        CFGLogitsProcessor(guided_grammar, self.tokenizer))
+
             async for batch in self._generate_vllm(
                 llm_input=job_input.llm_input,
-                validated_sampling_params=job_input.sampling_params,
+                validated_sampling_params=sampling_params,
                 batch_size=job_input.max_batch_size,
                 stream=job_input.stream,
                 apply_chat_template=job_input.apply_chat_template,
                 request_id=job_input.request_id,
                 batch_size_growth_factor=job_input.batch_size_growth_factor,
-                min_batch_size=job_input.min_batch_size,
-                guided_options_request=job_input.guided_options_request
+                min_batch_size=job_input.min_batch_size
             ):
                 yield batch
         except Exception as e:
             yield {"error": create_error_response(str(e)).model_dump()}
 
-    async def _generate_vllm(self, llm_input, validated_sampling_params, batch_size, stream, apply_chat_template, request_id, batch_size_growth_factor, min_batch_size: str, guided_options_request) -> AsyncGenerator[dict, None]:
+    async def _generate_vllm(self, llm_input, validated_sampling_params, batch_size, stream, apply_chat_template, request_id, batch_size_growth_factor, min_batch_size: str) -> AsyncGenerator[dict, None]:
         if apply_chat_template or isinstance(llm_input, list):
             llm_input = self.tokenizer.apply_chat_template(llm_input)
-        results_generator = self.llm.generate(llm_input, validated_sampling_params, request_id, guided_options_request=guided_options_request)
+        results_generator = self.llm.generate(llm_input, validated_sampling_params, request_id)
         n_responses, n_input_tokens, is_first_output = validated_sampling_params.n, 0, True
         last_output_texts, token_counters = ["" for _ in range(n_responses)], {"batch": 0, "total": 0}
 
