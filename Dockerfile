@@ -39,7 +39,7 @@ ENV MODEL_NAME=$MODEL_NAME \
 ENV PYTHONPATH="/:/vllm-workspace"
 
 
-COPY src/download_model.py /src/
+COPY src/download_model.py src/utils.py /src/
 RUN --mount=type=secret,id=HF_TOKEN,required=false \
     if [ -f /run/secrets/HF_TOKEN ]; then \
         export HF_TOKEN=$(cat /run/secrets/HF_TOKEN); \
