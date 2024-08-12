@@ -44,12 +44,12 @@ class vLLMEngine:
                 guided_regex = job_input.guided_options_request.get("guided_regex")
                 if guided_regex is not None:
                     sampling_params.logits_processors.append(
-                        RegexLogitsProcessor(guided_regex, self.tokenizer.tokenizer))
+                        RegexLogitsProcessor([guided_regex], self.tokenizer.tokenizer))
 
                 guided_grammar = job_input.guided_options_request.get("guided_grammar")
                 if guided_grammar is not None:
                     sampling_params.logits_processors.append(
-                        CFGLogitsProcessor(guided_grammar, self.tokenizer.tokenizer))
+                        CFGLogitsProcessor([guided_grammar], self.tokenizer.tokenizer))
 
             async for batch in self._generate_vllm(
                 llm_input=job_input.llm_input,
