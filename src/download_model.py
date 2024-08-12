@@ -74,7 +74,7 @@ if __name__ == "__main__":
     setup_env()
     cache_dir = os.getenv("HF_HOME")
     model_name, model_revision, model_filename = os.getenv("MODEL_NAME"), os.getenv("MODEL_REVISION"), os.getenv("MODEL_FILENAME")  or None
-    tokenizer_name, tokenizer_revision = os.getenv("TOKENIZER_NAME") or model_name, os.getenv("TOKENIZER_REVISION") or model_revision
+    tokenizer_name, tokenizer_revision = os.getenv("TOKENIZER_NAME") or None, os.getenv("TOKENIZER_REVISION") or None
     quantization = os.getenv("QUANTIZATION") or None
 
     logging.info(f"Downloading model {model_name} (filename {model_filename}) revision {model_revision} with quantization {quantization}.")
