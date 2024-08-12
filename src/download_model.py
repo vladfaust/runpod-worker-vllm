@@ -75,24 +75,27 @@ if __name__ == "__main__":
     cache_dir = os.getenv("HF_HOME")
     model_name, model_revision, model_filename = os.getenv("MODEL_NAME"), os.getenv("MODEL_REVISION"), os.getenv("MODEL_FILENAME")  or None
     tokenizer_name, tokenizer_revision = os.getenv("TOKENIZER_NAME") or model_name, os.getenv("TOKENIZER_REVISION") or model_revision
+    quantization = os.getenv("QUANTIZATION") or None
+
+    logging.info(f"Downloading model {model_name} (filename {model_filename}) revision {model_revision} with quantization {quantization}.")
    
-    if os.getenv("QUANTIZATION") == "gguf":
+    if quantization == "gguf":
         if model_filename is None:
             raise ValueError("MODEL_FILENAME must be provided for gguf quantization.")
 
         model_path = download_gguf(model_name, model_filename, model_revision, cache_dir)
         metadata = {
             "MODEL_NAME": model_path,
-            "MODEL_REVISION": os.getenv("MODEL_REVISION"),
-            "QUANTIZATION": os.getenv("QUANTIZATION"),
+            "MODEL_REVISION": model_revision,
+            "QUANTIZATION": quantization,
         }
     else:
         model_path = download(model_name, model_revision, "model", cache_dir)
         tokenizer_path = download(tokenizer_name, tokenizer_revision, "tokenizer", cache_dir)
         metadata = {
             "MODEL_NAME": model_path,
-            "MODEL_REVISION": os.getenv("MODEL_REVISION"),
-            "QUANTIZATION": os.getenv("QUANTIZATION"),
+            "MODEL_REVISION": model_revision,
+            "QUANTIZATION": quantization,
             "TOKENIZER_NAME": tokenizer_path,
             "TOKENIZER_REVISION": tokenizer_revision
         }
