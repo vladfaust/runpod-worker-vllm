@@ -4,11 +4,23 @@ import logging
 import glob
 from shutil import rmtree
 from huggingface_hub import snapshot_download, hf_hub_download
-from utils import timer_decorator
+from functools import wraps
+from time import time
 
 BASE_DIR = "/" 
 TOKENIZER_PATTERNS = [["*.json", "tokenizer*"]]
 MODEL_PATTERNS = [["*.safetensors"], ["*.bin"], ["*.pt"]]
+
+
+def timer_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time()
+        result = func(*args, **kwargs)
+        end = time()
+        logging.info(f"{func.__name__} completed in {end - start:.2f} seconds")
+        return result
+    return wrapper
 
 def setup_env():
     if os.getenv("TESTING_DOWNLOAD") == "1":
