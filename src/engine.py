@@ -54,7 +54,7 @@ class vLLMEngine:
                 guided_json = job_input.guided_options_request.get("guided_json")
                 if guided_json is not None:
                     sampling_params.logits_processors.append(
-                        JSONLogitsProcessor(guided_json, self.tokenizer.tokenizer))
+                        JSONLogitsProcessor(guided_json, self.tokenizer.tokenizer, None))
 
             async for batch in self._generate_vllm(
                 llm_input=job_input.llm_input,
