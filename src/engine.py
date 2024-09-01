@@ -11,7 +11,7 @@ from vllm import AsyncLLMEngine
 from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
 from vllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
 from vllm.entrypoints.openai.protocol import ChatCompletionRequest, CompletionRequest, ErrorResponse
-from vllm.model_executor.guided_decoding.outlines_logits_processors import RegexLogitsProcessor, CFGLogitsProcessor
+from vllm.model_executor.guided_decoding.outlines_logits_processors import RegexLogitsProcessor, CFGLogitsProcessor, JSONLogitsProcessor
 
 from utils import DummyRequest, JobInput, BatchSize, create_error_response
 from constants import DEFAULT_MAX_CONCURRENCY, DEFAULT_BATCH_SIZE, DEFAULT_BATCH_SIZE_GROWTH_FACTOR, DEFAULT_MIN_BATCH_SIZE
@@ -50,6 +50,11 @@ class vLLMEngine:
                 if guided_grammar is not None:
                     sampling_params.logits_processors.append(
                         CFGLogitsProcessor(guided_grammar, self.tokenizer.tokenizer))
+
+                guided_json = job_input.guided_options_request.get("guided_json")
+                if guided_json is not None:
+                    sampling_params.logits_processors.append(
+                        JSONLogitsProcessor(guided_json, self.tokenizer.tokenizer))
 
             async for batch in self._generate_vllm(
                 llm_input=job_input.llm_input,
